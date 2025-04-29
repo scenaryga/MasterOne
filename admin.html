@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin CRM - Master One Hour</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-register-container" id="authContainer">
+        <!-- Login Form -->
+        <div class="login-form-container" id="loginView">
+            <h1>Master One Hour CRM</h1>
+            <p>Войдите для доступа к системе</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Логин:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="auth-button">Войти</button>
+            </form>
+            <div class="auth-error" id="loginError"></div>
+            <p class="auth-toggle">Нет аккаунта? <a href="#" id="showRegister">Зарегистрироваться</a></p>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="register-form-container" id="registerView" style="display: none;">
+            <h1>Регистрация</h1>
+            <p>Создайте новый аккаунт администратора</p>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="regUsername">Логин:</label>
+                    <input type="text" id="regUsername" name="regUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Пароль:</label>
+                    <input type="password" id="regPassword" name="regPassword" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">Подтвердите пароль:</label>
+                    <input type="password" id="regConfirmPassword" name="regConfirmPassword" required minlength="6">
+                </div>
+                <button type="submit" class="auth-button">Зарегистрироваться</button>
+            </form>
+            <div class="auth-message" id="registerMessage"></div>
+            <div class="auth-error" id="registerError"></div>
+            <p class="auth-toggle">Уже есть аккаунт? <a href="#" id="showLogin">Войти</a></p>
+        </div>
+    </div>
+
+    <div class="dashboard-container" id="dashboardContainer" style="display: none;">
+        <header class="dashboard-header">
+            <div class="dashboard-logo">Master One Hour CRM</div>
+            <div class="admin-controls">
+                <span id="adminUsernameDisplay">Администратор</span>
+                <button id="logoutButton" class="logout-button">Выйти</button>
+            </div>
+        </header>
+
+        <div class="dashboard-main">
+            <aside class="sidebar">
+                <nav class="sidebar-menu">
+                    <a href="#" class="active" data-section="orders">Заявки</a>
+                    <a href="#" data-section="statistics">Статистика</a>
+                    <a href="#" data-section="settings">Настройки</a>
+                    <a href="index.html" target="_blank">Открыть сайт</a>
+                </nav>
+            </aside>
+
+            <main class="content">
+                <section id="orders" class="content-section active">
+                    <h2>Управление заявками</h2>
+                    <div class="order-filters">
+                        <div class="filter-group">
+                            <label for="statusFilter">Статус:</label>
+                            <select id="statusFilter">
+                                <option value="all">Все заявки</option>
+                                <option value="new">Новые</option>
+                                <option value="inProgress">В работе</option>
+                                <option value="completed">Выполненные</option>
+                                <option value="cancelled">Отмененные</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateFilter">Дата:</label>
+                            <select id="dateFilter">
+                                <option value="all">Все время</option>
+                                <option value="today">Сегодня</option>
+                                <option value="yesterday">Вчера</option>
+                                <option value="week">Последние 7 дней</option>
+                                <option value="month">Последние 30 дней</option>
+                            </select>
+                        </div>
+                        <button id="resetFilters" class="secondary-button">Сбросить фильтры</button>
+                    </div>
+
+                    <div class="orders-table-container">
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Дата</th>
+                                    <th>Имя клиента</th>
+                                    <th>Телефон</th>
+                                    <th>Адрес</th>
+                                    <th>Проблема</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody">
+                                <!-- Заявки будут добавлены с помощью JavaScript -->
+                            </tbody>
+                        </table>
+                        <div id="noOrders" class="no-orders-message">Нет заявок для отображения</div>
+                    </div>
+                </section>
+
+                <section id="statistics" class="content-section">
+                    <h2>Статистика заявок</h2>
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalOrders">0</div>
+                            <div class="stat-label">Всего заявок</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="newOrders">0</div>
+                            <div class="stat-label">Новых заявок</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="inProgressOrders">0</div>
+                            <div class="stat-label">В работе</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="completedOrders">0</div>
+                            <div class="stat-label">Выполнено</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ordersChart"></canvas>
+                    </div>
+                </section>
+
+                <section id="settings" class="content-section">
+                    <h2>Настройки</h2>
+                    <div class="settings-form">
+                        <h3>Изменение пароля</h3>
+                        <form id="changePasswordForm">
+                            <div class="form-group">
+                                <label for="currentPassword">Текущий пароль:</label>
+                                <input type="password" id="currentPassword" name="currentPassword" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">Новый пароль (мин. 6 символов):</label>
+                                <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Подтвердите пароль:</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                            </div>
+                            <button type="submit" class="primary-button">Сохранить пароль</button>
+                        </form>
+                        <div id="passwordChangeSuccess" class="success-message"></div>
+                        <div id="passwordChangeError" class="error-message"></div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Модальное окно для просмотра/редактирования заявки -->
+    <div class="modal" id="orderModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Детали заявки <span id="modalOrderId"></span></h2>
+            <form id="orderEditForm">
+                <div class="form-group">
+                    <label for="modalName">Имя клиента:</label>
+                    <input type="text" id="modalName" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="modalPhone">Телефон:</label>
+                    <input type="text" id="modalPhone" name="phone">
+                </div>
+                <div class="form-group">
+                    <label for="modalAddress">Адрес:</label>
+                    <input type="text" id="modalAddress" name="address">
+                </div>
+                <div class="form-group">
+                    <label for="modalProblem">Проблема:</label>
+                    <textarea id="modalProblem" name="problem" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="modalStatus">Статус:</label>
+                    <select id="modalStatus" name="status">
+                        <option value="new">Новая</option>
+                        <option value="inProgress">В работе</option>
+                        <option value="completed">Выполнена</option>
+                        <option value="cancelled">Отменена</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modalNotes">Примечания:</label>
+                    <textarea id="modalNotes" name="notes" rows="4"></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="primary-button">Сохранить изменения</button>
+                    <button type="button" id="cancelEdit" class="secondary-button">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="admin-script.js"></script>
+</body>
+</html>
