@@ -1,8 +1,3 @@
-
-
-// No changes or updates provided in the plan, so the code remains the same.
-
-
 // Smooth scrolling for navigation links
 document.querySelectorAll('nav a[href^="#"], .hero a[href^="#"], .pricing a[href^="#"], .footer-links a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -67,66 +62,179 @@ document.querySelectorAll('.step-item').forEach(item => {
     stepObserver.observe(item);
 });
 
+// Function to encode object to URL-encoded string
+function obj2post(obj) {
+    var str = [];
+    for (var p in obj)
+        if (obj.hasOwnProperty(p)) {
+            str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+        }
+    return str.join("&");
+}
+
+// Function to send order data to external API
+function sendOrderToAPI(formData) { // Accept form data object
+    // Use the ID and endpoint from the user's latest prompt
+    var idp = 'deab5b64-d04e-7167-7cc339cbdb4c8819';
+    var url = 'https://newapi.ru/mfh/addorders?idp=' + encodeURIComponent(idp);
+
+    var XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
+    var xhr = new XHR();
+
+    // Construct data object for the API using the passed formData
+    // Use the fields from the new form structure
+    var apiData = {
+        'fullname': formData.fullname,
+        'phone': formData.phone.replace(/\D/g, ''), // Remove non-digit characters
+        'work': formData.work, // Use the 'work' field for comment
+        'branch_id': formData.branch_id, // Include hidden fields
+        'is_pm': formData.is_pm,
+        'thread_id': formData.thread_id,
+        'thread_type': formData.thread_type,
+        'sub_id1': formData.sub_id1,
+        'sub_id2': formData.sub_id2,
+        'sub_id3': formData.sub_id3,
+        'direction_id': formData.direction_id,
+        'offer_id': formData.offer_id
+    };
+
+    var formDataAPI = obj2post(apiData); // Use apiData for POST body
+
+    xhr.onload = function () {
+        console.log(`API response: ${xhr.status} ${xhr.response}`);
+        // Note: Depending on API response, you might want to check status or response body for confirmation
+        // For now, just logging. The form submit handler will show page messages.
+    };
+    xhr.onerror = function () { // only triggers if the request couldn't be made at all
+        console.error(`Network Error when sending to API`);
+        // You might want to log this error on the page or console for debugging
+    };
+    xhr.ontimeout = function () { // Optional: Add ontimeout handler
+         console.error(`API request timed out`);
+         // You might want to log this error on the page or console for debugging
+     };
+
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.send(formDataAPI); // Send the constructed API data
+}
+
 // Form handling
 document.getElementById('orderForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
 
-    // Simple form validation (check required fields)
-    const nameInput = document.getElementById('name');
-    const phoneInput = document.getElementById('phone');
-    const addressInput = document.getElementById('address');
-    const problemInput = document.getElementById('problem');
+    const form = this; // Reference to the form
+    const successMessageDiv = document.getElementById('formSuccessMessage');
+    const errorMessageDiv = document.getElementById('formErrorMessage');
 
-    if (!nameInput.value || !phoneInput.value) {
-         alert('Пожалуйста, заполните обязательные поля: Имя и Телефон.');
-         return;
+    // Clear previous messages
+    successMessageDiv.textContent = '';
+    successMessageDiv.style.display = 'none';
+    errorMessageDiv.textContent = '';
+    errorMessageDiv.style.display = 'none';
+    document.querySelectorAll('.error-message').forEach(el => { el.textContent = ''; el.style.display = 'none'; });
+    document.querySelectorAll('.form-group input, .form-group textarea').forEach(el => { el.classList.remove('error'); });
+
+
+    // Get form values using the new structure and names
+    const fullnameInput = form.querySelector('[name="fullname"]');
+    const phoneInput = form.querySelector('[name="phone"]');
+    const workInput = form.querySelector('[name="work"]'); // The comment field is now named 'work'
+
+    // Get error message elements (reusing IDs)
+    const fullnameError = document.getElementById('fullnameError');
+    const phoneError = document.getElementById('phoneError');
+    const commentError = document.getElementById('commentError'); // Error for the 'work' field
+
+    let isValid = true;
+
+    // Validate required fields (fullname and phone are required in the example)
+    if (!fullnameInput.value.trim()) {
+        fullnameError.textContent = 'Введите ваше имя.';
+        fullnameError.style.display = 'block';
+        fullnameInput.classList.add('error');
+        isValid = false;
+    }
+     if (!phoneInput.value.trim()) {
+        phoneError.textContent = 'Введите ваш номер телефона.';
+        phoneError.style.display = 'block';
+        phoneInput.classList.add('error');
+        isValid = false;
+    }
+    // 'work' (comment) is not required based on the user's example form
+
+
+    // If validation fails, stop here
+    if (!isValid) {
+        errorMessageDiv.textContent = 'Пожалуйста, заполните все обязательные поля.';
+        errorMessageDiv.style.display = 'block';
+        return;
     }
 
-    // Get form values
-    const name = nameInput.value;
-    const phone = phoneInput.value;
-    const address = addressInput.value;
-    const problem = problemInput.value;
-
-    // Create order data
-    const orderData = {
-        name: name,
-        phone: phone,
-        address: address,
-        problem: problem
+    // Collect all form values, including hidden inputs
+    const formValues = {
+        fullname: fullnameInput.value.trim(),
+        phone: phoneInput.value.trim(),
+        work: workInput.value.trim(),
+        branch_id: form.querySelector('[name="branch_id"]').value,
+        is_pm: form.querySelector('[name="is_pm"]').value,
+        thread_id: form.querySelector('[name="thread_id"]').value,
+        thread_type: form.querySelector('[name="thread_type"]').value,
+        sub_id1: form.querySelector('[name="sub_id1"]').value,
+        sub_id2: form.querySelector('[name="sub_id2"]').value,
+        sub_id3: form.querySelector('[name="sub_id3"]').value,
+        direction_id: form.querySelector('[name="direction_id"]').value,
+        offer_id: form.querySelector('[name="offer_id"]').value
     };
 
-    // Try to send to CRM if open, otherwise store in localStorage
-    let orderSaved = false;
+    // Store order temporarily in localStorage for the admin page to pick up
+    // This acts as a simple queue since we don't have a backend API to send orders to directly
+    const pendingOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
+    pendingOrders.push({
+        id: Date.now(), // Simple ID, will be replaced in CRM
+        date: new Date().toISOString(),
+        name: formValues.fullname,
+        phone: formValues.phone,
+        city: '',
+        direction: '',
+        clientComment: formValues.work, // Store detailed comment
+        status: 'new',
+        notes: ''
+    });
+    localStorage.setItem('pendingOrders', JSON.stringify(pendingOrders));
 
-    // Check if the admin window is open and has the addNewOrder function
-    if (window.opener && !window.opener.closed && typeof window.opener.addNewOrder === 'function') {
-         try {
-            orderSaved = window.opener.addNewOrder(orderData);
-            console.log('Order sent to opener window:', orderData);
-         } catch (error) {
-             console.error('Error sending order to opener window:', error);
-             orderSaved = false; // Fallback to localStorage if error
-         }
-    }
+    // Send order data to external API
+    sendOrderToAPI(formValues); // Pass the collected formValues object
 
-    // Store in localStorage as a backup or if opener failed/not present
-    if (!orderSaved) {
-        const storedOrders = JSON.parse(localStorage.getItem('pendingOrders') || '[]');
-        storedOrders.push({
-            ...orderData,
-            date: new Date().toISOString() // Add timestamp
+    // Show success message on the page
+    successMessageDiv.textContent = `Спасибо за заявку, ${formValues.fullname}! Мы скоро свяжемся с вами по телефону ${formValues.phone} для подтверждения заказа.`;
+    successMessageDiv.style.display = 'block';
+
+    // Reset form after successful submission
+    form.reset();
+});
+
+// Service type tab switching
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceTabs = document.querySelectorAll('.service-tab');
+    
+    serviceTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            serviceTabs.forEach(t => t.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            // Hide all service sections
+            const serviceSections = document.querySelectorAll('.service-section');
+            serviceSections.forEach(section => section.classList.remove('active'));
+            
+            // Show the target service section
+            const targetId = this.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
         });
-        localStorage.setItem('pendingOrders', JSON.stringify(storedOrders));
-        console.log('Order stored in localStorage (pendingOrders):', orderData);
-        alert(`Спасибо за заявку, ${name}! Мы скоро свяжемся с вами по телефону ${phone} для подтверждения заказа.\n\n(Заявка временно сохранена локально, так как CRM не была открыта в отдельном окне).`);
-    } else {
-        // Show success message for the main site user
-        alert(`Спасибо за заявку, ${name}! Мы скоро свяжемся с вами по телефону ${phone} для подтверждения заказа.`);
-    }
-
-    // Reset form
-    this.reset();
+    });
 });
 
 // Burger menu toggle

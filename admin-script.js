@@ -66,11 +66,30 @@ function clearLoggedInUser() {
 let currentLoggedInUser = null; // Store the username of the logged-in user
 
 // --- Orders Data ---
+let orders = []; // Global array to hold order data
+
 // Function to get orders from localStorage or initialize
 function getOrders() {
     const storedOrders = localStorage.getItem('crmOrders');
     if (storedOrders) {
-        return JSON.parse(storedOrders);
+        const orders = JSON.parse(storedOrders);
+        // Ensure all orders have the expected fields, add defaults if missing
+        return orders.map(order => ({
+             id: order.id, // Keep original ID
+             date: order.date, // Keep original date
+             name: order.name || 'Не указано',
+             phone: order.phone || 'Не указано',
+             city: order.city || '',
+             address: order.address || '', // Keep address field for existing orders in the table
+             direction: order.direction || '',
+             offer: order.offer || '',
+             additionalPhone: order.additionalPhone || '',
+             source: order.source || '',
+             problem: order.problem || '', // Keep original problem field
+             clientComment: order.clientComment || '', // Ensure clientComment exists
+             status: order.status || 'new',
+             notes: order.notes || '' // Ensure notes exists
+        }));
     }
     // Initial dummy data if no orders are stored
     return [
@@ -79,8 +98,14 @@ function getOrders() {
             date: '2024-05-15T10:30:00',
             name: 'Иван Петров',
             phone: '+7 (999) 123-45-67',
+            city: 'Липецк',
             address: 'ул. Ленина, 42, кв. 56',
-            problem: 'Сломался смеситель в ванной',
+            direction: 'Сантехника',
+            offer: 'Сломался смеситель',
+            additionalPhone: '',
+            source: 'Google',
+            problem: 'Сантехника / Сломался смеситель', // Simpler representation for table display
+            clientComment: 'Требуется замена смесителя в ванной комнате.',
             status: 'new',
             notes: ''
         },
@@ -89,8 +114,14 @@ function getOrders() {
             date: '2024-05-14T14:15:00',
             name: 'Елена Смирнова',
             phone: '+7 (917) 987-65-43',
+            city: 'Липецк',
             address: 'Профсоюзная ул., 100, кв. 22',
-            problem: 'Не работает розетка на кухне',
+            direction: 'Электрика',
+            offer: 'Не работает розетка',
+            additionalPhone: '',
+            source: 'Yandex',
+            problem: 'Электрика / Не работает розетка', // Simpler representation
+            clientComment: 'Одна из розеток на кухне не подает питание.',
             status: 'inProgress',
             notes: 'Мастер выезжает 16 мая'
         },
@@ -99,8 +130,14 @@ function getOrders() {
             date: '2024-05-13T09:45:00',
             name: 'Алексей Иванов',
             phone: '+7 (905) 456-78-90',
+            city: 'Липецк',
             address: 'ул. Тверская, 15, кв. 89',
-            problem: 'Требуется собрать шкаф IKEA',
+            direction: 'Мебель',
+            offer: 'Сборка шкафа',
+            additionalPhone: '',
+            source: 'Рекомендация',
+            problem: 'Мебель / Сборка шкафа', // Simpler representation
+            clientComment: 'Требуется собрать шкаф IKEA.',
             status: 'completed',
             notes: 'Выполнено 14 мая, клиент доволен'
         },
@@ -109,10 +146,32 @@ function getOrders() {
             date: '2024-05-12T16:20:00',
             name: 'Ольга Кузнецова',
             phone: '+7 (926) 111-22-33',
+            city: 'Липецк',
             address: 'Ленинградский пр-т, 78, кв. 145',
-            problem: 'Протечка под раковиной',
+            direction: 'Сантехника',
+            offer: 'Протечка под раковиной',
+            additionalPhone: '',
+            source: 'Google',
+            problem: 'Сантехника / Протечка под раковиной', // Simpler representation
+            clientComment: 'Требуется устранить протечку.',
             status: 'cancelled',
             notes: 'Клиент отменил заказ'
+        },
+         {
+            id: 5, // New ID
+            date: '2024-05-16T11:00:00', // New date
+            name: 'Петр Сидоров',
+            phone: '+7 (951) 222-33-44',
+            city: 'Липецк',
+            address: 'ул. Гагарина, 5, кв. 10',
+            direction: 'Дезинсекция', // New Direction
+            offer: 'Обработка от тараканов', // New Offer
+            additionalPhone: '',
+            source: 'Website',
+            problem: 'Дезинсекция / Обработка от тараканов', // Simpler representation
+            clientComment: 'Появились тараканы на кухне, нужна обработка.',
+            status: 'new',
+            notes: ''
         }
     ];
 }
@@ -122,31 +181,57 @@ function saveOrders(ordersToSave) {
     localStorage.setItem('crmOrders', JSON.stringify(ordersToSave));
 }
 
-// Initialize orders from storage or default
-let orders = getOrders();
-
 // Function to handle new orders from the main site
+// This function is called from the main site script when an order is submitted
+// It's made available globally via `window.addNewOrder`
 window.addNewOrder = function(orderData) {
     const newOrder = {
-        id: Date.now(), // Simple unique ID
-        date: new Date().toISOString(),
+        id: Date.now() + Math.floor(Math.random() * 1000), // Simple unique ID with random offset
+        date: orderData.date || new Date().toISOString(),
         name: orderData.name || 'Не указано',
         phone: orderData.phone || 'Не указано',
-        address: orderData.address || '',
-        problem: orderData.problem || '',
+        city: orderData.city || '', // These will be empty from the current form
+        address: orderData.address || '', // This will be empty from the current form
+        direction: orderData.direction || '', // These will be empty from the current form
+        offer: orderData.offer || '', // These will be empty from the current form
+        additionalPhone: orderData.additionalPhone || '', // These will be empty from the current form
+        source: orderData.source || '', // These will be empty from the current form
+        // The 'problem' field for the table display might need to be constructed
+        // from the clientComment or default to it if other details are missing.
+        // For now, use clientComment as problem if problem is empty
+        problem: orderData.problem || orderData.clientComment || 'Не указано',
+        clientComment: orderData.clientComment || '', // This holds the 'work' value from the main form
         status: 'new', // New orders default to 'new' status
         notes: ''
     };
-    orders.push(newOrder);
-    saveOrders(orders);
-    console.log('New order added:', newOrder);
-    // If logged in and on the orders page, refresh the table
-    if (dashboardContainer.style.display !== 'none' && document.getElementById('orders').classList.contains('active')) {
-        renderOrdersTable();
-        updateStatistics();
+
+    // Basic deduplication check: avoid adding duplicate orders with same phone, comment, and close timestamp
+    // Increased time window slightly for potentially delayed data transfer
+    const isDuplicate = orders.some(order =>
+        order.phone === newOrder.phone &&
+        order.clientComment === newOrder.clientComment &&
+        Math.abs(new Date(order.date).getTime() - new Date(newOrder.date).getTime()) < 10000 // within 10 seconds
+    );
+
+    if (!isDuplicate) {
+        orders.push(newOrder);
+        saveOrders(orders);
+        console.log('New order added:', newOrder);
+        // If logged in and on the orders page, refresh the table
+        if (dashboardContainer.style.display !== 'none' && document.getElementById('orders').classList.contains('active')) {
+            filterOrders(); // Use filterOrders to ensure current filters are applied
+            updateStatistics();
+            // renderOrdersChart(filterOrdersForChart()); // Chart updates on tab switch or filters being applied
+        }
+        return true; // Indicate successful processing
+    } else {
+        console.log('Duplicate order detected and ignored:', newOrder);
+        return false; // Indicate duplicate
     }
-    return true; // Indicate successful processing
 };
+
+// Load orders from storage on script load
+orders = getOrders();
 
 // --- DOM Elements ---
 const authContainer = document.getElementById('authContainer');
@@ -170,13 +255,127 @@ const resetFiltersButton = document.getElementById('resetFilters');
 const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
 const contentSections = document.querySelectorAll('.content-section');
 const orderModal = document.getElementById('orderModal');
-const closeModalButton = document.querySelector('.close-modal'); // Corrected variable name
+const closeModalButton = document.querySelector('.close-modal');
 const orderEditForm = document.getElementById('orderEditForm');
 const cancelEditButton = document.getElementById('cancelEdit');
 const changePasswordForm = document.getElementById('changePasswordForm');
 const passwordChangeSuccess = document.getElementById('passwordChangeSuccess');
 const passwordChangeError = document.getElementById('passwordChangeError');
 const modalOrderId = document.getElementById('modalOrderId');
+
+// New modal field elements
+const modalCityInput = document.createElement('input');
+modalCityInput.type = 'text';
+modalCityInput.id = 'modalCity'; // Keep ID for label association
+modalCityInput.name = 'city'; // Keep name for form data
+
+const modalDirectionInput = document.createElement('input');
+modalDirectionInput.type = 'text';
+modalDirectionInput.id = 'modalDirection';
+modalDirectionInput.name = 'direction';
+
+const modalOfferInput = document.createElement('input');
+modalOfferInput.type = 'text';
+modalOfferInput.id = 'modalOffer';
+modalOfferInput.name = 'offer';
+
+const modalAdditionalPhoneInput = document.createElement('input');
+modalAdditionalPhoneInput.type = 'tel'; // Use tel type
+modalAdditionalPhoneInput.id = 'modalAdditionalPhone';
+modalAdditionalPhoneInput.name = 'additionalPhone';
+
+const modalSourceInput = document.createElement('input');
+modalSourceInput.type = 'text';
+modalSourceInput.id = 'modalSource';
+modalSourceInput.name = 'source';
+
+const modalClientCommentTextarea = document.createElement('textarea');
+modalClientCommentTextarea.id = 'modalClientComment';
+modalClientCommentTextarea.name = 'clientComment';
+modalClientCommentTextarea.rows = 4; // Keep row count
+
+// Function to insert new fields into the modal form
+function addExtendedFieldsToModal() {
+    const formGroups = orderEditForm.querySelectorAll('.form-group');
+    if (formGroups.length === 0) return; // Exit if form groups aren't ready
+
+    const modalNameGroup = orderEditForm.querySelector('#modalName')?.closest('.form-group');
+    const modalPhoneGroup = orderEditForm.querySelector('#modalPhone')?.closest('.form-group');
+    const modalProblemGroup = orderEditForm.querySelector('#modalProblem')?.closest('.form-group');
+    const modalStatusGroup = orderEditForm.querySelector('#modalStatus')?.closest('.form-group');
+
+    if (!modalNameGroup || !modalPhoneGroup || !modalProblemGroup || !modalStatusGroup) {
+        console.error("Required form groups not found in modal.");
+        return; // Exit if essential elements are missing
+    }
+
+    // Create new form groups for the new fields
+    const cityGroup = document.createElement('div');
+    cityGroup.classList.add('form-group');
+    cityGroup.innerHTML = '<label for="modalCity">Город:</label>';
+    cityGroup.appendChild(modalCityInput);
+
+    const directionGroup = document.createElement('div');
+    directionGroup.classList.add('form-group');
+    directionGroup.innerHTML = '<label for="modalDirection">Направление:</label>';
+    directionGroup.appendChild(modalDirectionInput);
+
+    const offerGroup = document.createElement('div');
+    offerGroup.classList.add('form-group');
+    offerGroup.innerHTML = '<label for="modalOffer">Оффер:</label>';
+    offerGroup.appendChild(modalOfferInput);
+
+    const addPhoneGroup = document.createElement('div');
+    addPhoneGroup.classList.add('form-group');
+    addPhoneGroup.innerHTML = '<label for="modalAdditionalPhone">Доп. телефон:</label>';
+    addPhoneGroup.appendChild(modalAdditionalPhoneInput);
+
+    const sourceGroup = document.createElement('div');
+    sourceGroup.classList.add('form-group');
+    sourceGroup.innerHTML = '<label for="modalSource">Источник:</label>';
+    sourceGroup.appendChild(modalSourceInput);
+
+    const clientCommentGroup = document.createElement('div');
+    clientCommentGroup.classList.add('form-group');
+    clientCommentGroup.innerHTML = '<label for="modalClientComment">Комментарий клиента:</label>';
+    clientCommentGroup.appendChild(modalClientCommentTextarea);
+
+    modalPhoneGroup.parentNode.insertBefore(cityGroup, modalPhoneGroup.nextSibling);
+    modalProblemGroup.parentNode.insertBefore(directionGroup, modalProblemGroup);
+    directionGroup.parentNode.insertBefore(offerGroup, directionGroup.nextSibling);
+    offerGroup.parentNode.insertBefore(addPhoneGroup, offerGroup.nextSibling);
+    addPhoneGroup.parentNode.insertBefore(sourceGroup, addPhoneGroup.nextSibling);
+    sourceGroup.parentNode.insertBefore(clientCommentGroup, sourceGroup.nextSibling);
+}
+
+// Call this function once when the page loads and modal elements are ready
+document.addEventListener('DOMContentLoaded', () => {
+    currentLoggedInUser = getLoggedInUser();
+    if (currentLoggedInUser) {
+        if (findUser(currentLoggedInUser)) {
+            showDashboard(currentLoggedInUser);
+        } else {
+            clearLoggedInUser();
+            hideDashboard();
+        }
+    } else {
+        hideDashboard();
+    }
+
+    // Add the extended fields to the modal form once the DOM is ready
+    addExtendedFieldsToModal();
+
+    // Add event listeners for view toggling
+    showRegisterLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegisterView();
+    });
+
+    showLoginLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        showLoginView();
+    });
+});
 
 // --- Authentication Flow ---
 
@@ -200,13 +399,10 @@ function showDashboard(username) {
     authContainer.style.display = 'none';
     dashboardContainer.style.display = 'flex'; // Use flex as per CSS layout
     adminUsernameDisplay.textContent = username;
-    // Load initial dashboard content
     activateSection('orders');
-    renderOrdersTable(); // Initial render
-    updateStatistics(); // Initial stats
-    initializeChart(); // Initialize chart on stats tab
-    renderOrdersChart(filterOrdersForChart()); // Initial chart render
-    loadPendingOrders(); // Load any orders from the main site's localStorage
+    renderOrdersTable();
+    updateStatistics();
+    loadPendingOrders();
 }
 
 function hideDashboard() {
@@ -221,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentLoggedInUser) {
         // Simple check if user still exists (optional, for robustness)
         if (findUser(currentLoggedInUser)) {
-             showDashboard(currentLoggedInUser);
+            showDashboard(currentLoggedInUser);
         } else {
             clearLoggedInUser();
             hideDashboard();
@@ -229,20 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         hideDashboard();
     }
-
-    // Add event listeners for view toggling
-    showRegisterLink?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showRegisterView();
-    });
-
-    showLoginLink?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLoginView();
-    });
-
-    // Existing event listeners...
-    // ... (loginForm, registerForm, logoutButton, sidebarLinks, filters, modal)
 });
 
 // Login Form Submit
@@ -281,7 +463,7 @@ registerForm?.addEventListener('submit', function(e) {
         registerMessage.textContent = 'Аккаунт успешно создан! Теперь вы можете войти.';
         registerForm.reset();
         // Optionally switch back to login view after successful registration
-         setTimeout(showLoginView, 2000); // Switch after 2 seconds
+        setTimeout(showLoginView, 2000); // Switch after 2 seconds
     } else {
         registerError.textContent = 'Пользователь с таким логином уже существует.';
     }
@@ -389,7 +571,7 @@ function filterOrders() {
             case 'today':
                 return orderDate >= today && orderDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
             case 'yesterday':
-                 const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+                const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
                 return orderDate >= yesterday && orderDate < today;
             case 'week':
                 const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -404,8 +586,8 @@ function filterOrders() {
     });
 
     renderOrdersTable(filtered);
-    updateStatistics(); // Update stats based on filtered data (or all data depending on requirement)
-    renderOrdersChart(filterOrdersForChart()); // Update chart based on filtered data
+    updateStatistics(); 
+    renderOrdersChart(filterOrdersForChart()); 
 }
 
 // Filter event listeners
@@ -422,8 +604,18 @@ function openOrderModal(order) {
     modalOrderId.textContent = order.id;
     document.getElementById('modalName').value = order.name;
     document.getElementById('modalPhone').value = order.phone;
-    document.getElementById('modalAddress').value = order.address;
-    document.getElementById('modalProblem').value = order.problem;
+
+    // Set values for the new fields
+    modalCityInput.value = order.city || '';
+    modalDirectionInput.value = order.direction || '';
+    modalOfferInput.value = order.offer || '';
+    modalAdditionalPhoneInput.value = order.additionalPhone || '';
+    modalSourceInput.value = order.source || '';
+    modalClientCommentTextarea.value = order.clientComment || '';
+
+    // The 'problem' field in the modal now represents the combined summary for the table
+    document.getElementById('modalProblem').value = order.problem || '';
+
     // Set the status select value
     document.getElementById('modalStatus').value = order.status;
     document.getElementById('modalNotes').value = order.notes;
@@ -433,14 +625,18 @@ function openOrderModal(order) {
 
 ordersTableBody?.addEventListener('click', (e) => {
     const target = e.target;
-    const id = parseInt(target.getAttribute('data-id'));
+    // Use closest() to find the parent button and get the id
+    const button = target.closest('.action-button');
+    if (!button) return; // Not a button clicked
 
-    if (target.classList.contains('edit-button')) {
+    const id = parseInt(button.getAttribute('data-id'));
+
+    if (button.classList.contains('edit-button')) {
         const order = orders.find(o => o.id === id);
         if (order) {
             openOrderModal(order);
         }
-    } else if (target.classList.contains('delete-button')) {
+    } else if (button.classList.contains('delete-button')) {
         if (confirm(`Вы уверены, что хотите удалить заявку ID ${id}?`)) {
             deleteOrder(id);
         }
@@ -469,19 +665,24 @@ orderEditForm?.addEventListener('submit', (e) => {
     const orderIndex = orders.findIndex(o => o.id === id);
 
     if (orderIndex > -1) {
+        // Update all fields including the new ones
         orders[orderIndex] = {
-            ...orders[orderIndex], // Keep existing properties like date
-            name: document.getElementById('modalName').value,
-            phone: document.getElementById('modalPhone').value,
-            address: document.getElementById('modalAddress').value,
-            problem: document.getElementById('modalProblem').value,
-            // Get the updated status from the select input
+            ...orders[orderIndex], 
+            name: document.getElementById('modalName').value.trim(),
+            phone: document.getElementById('modalPhone').value.trim(),
+            city: modalCityInput.value.trim(),
+            address: '', 
+            direction: modalDirectionInput.value.trim(),
+            offer: modalOfferInput.value.trim(),
+            additionalPhone: modalAdditionalPhoneInput.value.trim(),
+            source: modalSourceInput.value.trim(),
+            clientComment: modalClientCommentTextarea.value.trim(),
+            problem: document.getElementById('modalProblem').value.trim(),
             status: document.getElementById('modalStatus').value,
-            notes: document.getElementById('modalNotes').value
+            notes: document.getElementById('modalNotes').value.trim()
         };
         saveOrders(orders);
-        filterOrders(); // Re-render table with current filters
-        // Also update stats and chart as status affects them
+        filterOrders(); 
         updateStatistics();
         renderOrdersChart(filterOrdersForChart());
         closeOrderModal();
@@ -491,7 +692,9 @@ orderEditForm?.addEventListener('submit', (e) => {
 function deleteOrder(id) {
     orders = orders.filter(order => order.id !== id);
     saveOrders(orders);
-    filterOrders(); // Re-render table with current filters
+    filterOrders(); 
+    updateStatistics(); 
+    renderOrdersChart(filterOrdersForChart()); 
 }
 
 // --- Statistics ---
@@ -512,19 +715,19 @@ let ordersChart;
 
 function initializeChart() {
     const ctx = document.getElementById('ordersChart')?.getContext('2d');
-     if (!ctx) return; // Ensure context exists
+    if (!ctx) return; 
 
     if (ordersChart) {
-        ordersChart.destroy(); // Destroy existing chart instance if any
+        ordersChart.destroy(); 
     }
 
     ordersChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: [], // Labels will be dates or periods
+            labels: [], 
             datasets: [{
                 label: 'Количество заявок',
-                data: [], // Data will be counts
+                data: [], 
                 backgroundColor: '#4A6DB5',
                 borderColor: '#2A4D9B',
                 borderWidth: 1
@@ -537,26 +740,26 @@ function initializeChart() {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                         stepSize: 1, // Ensure integer steps for count
-                         callback: function(value) {
-                             if (value % 1 === 0) { return value; } // Only show integers
-                         }
+                        stepSize: 1, 
+                        callback: function(value) {
+                            if (value % 1 === 0) { return value; } 
+                        }
                     },
-                     title: {
-                         display: true,
-                         text: 'Количество заявок'
-                     }
+                    title: {
+                        display: true,
+                        text: 'Количество заявок'
+                    }
                 },
                 x: {
-                     title: {
-                         display: true,
-                         text: 'Дата'
-                     }
+                    title: {
+                        display: true,
+                        text: 'Дата'
+                    }
                 }
             },
             plugins: {
                 legend: {
-                    display: false // Hide legend for single dataset
+                    display: false 
                 },
                 title: {
                     display: true,
@@ -568,33 +771,28 @@ function initializeChart() {
 }
 
 function filterOrdersForChart() {
-     // Use all orders for the chart, regardless of table filters
-     return orders;
+    return orders;
 }
 
 function renderOrdersChart(ordersForChart) {
     if (!ordersChart) {
         initializeChart();
-         if (!ordersChart) return; // If initialization failed, stop
+        if (!ordersChart) return; 
     }
 
-    // Group orders by date (day)
     const orderCountsByDate = ordersForChart.reduce((acc, order) => {
-        const date = new Date(order.date).toISOString().split('T')[0]; // Get 'YYYY-MM-DD'
+        const date = new Date(order.date).toISOString().split('T')[0]; 
         acc[date] = (acc[date] || 0) + 1;
         return acc;
     }, {});
 
-    // Sort dates chronologically and extract labels and data
     const sortedDates = Object.keys(orderCountsByDate).sort();
     const labels = sortedDates.map(date => {
-        // Format date for display (e.g., DD.MM)
         const [year, month, day] = date.split('-');
         return `${day}.${month}`;
     });
     const data = sortedDates.map(date => orderCountsByDate[date]);
 
-    // Update chart data
     ordersChart.data.labels = labels;
     ordersChart.data.datasets[0].data = data;
     ordersChart.update();
@@ -624,7 +822,7 @@ changePasswordForm?.addEventListener('submit', (e) => {
             passwordChangeError.textContent = result.message;
         }
     } else {
-         passwordChangeError.textContent = 'Ошибка: Пользователь не авторизован.'; // Should not happen if dashboard is shown
+        passwordChangeError.textContent = 'Ошибка: Пользователь не авторизован.'; 
     }
 });
 
@@ -635,16 +833,26 @@ function loadPendingOrders() {
         console.log(`Found ${pendingOrders.length} pending orders in localStorage.`);
         let newOrdersAdded = 0;
         pendingOrders.forEach(orderData => {
-            // Check if an order with the same timestamp already exists (basic deduplication)
-            const exists = orders.some(order => order.date === orderData.date && order.phone === orderData.phone);
+            const exists = orders.some(order =>
+                order.phone === orderData.phone &&
+                order.clientComment === orderData.clientComment && 
+                Math.abs(new Date(order.date).getTime() - new Date(orderData.date).getTime()) < 5000 
+            );
+
             if (!exists) {
-                 const newOrder = {
-                    id: Date.now() + newOrdersAdded, // Add a small offset for uniqueness if dates are same
+                const newOrder = {
+                    id: Date.now() + newOrdersAdded + Math.floor(Math.random() * 1000), 
                     date: orderData.date,
                     name: orderData.name || 'Не указано',
                     phone: orderData.phone || 'Не указано',
-                    address: orderData.address || '',
-                    problem: orderData.problem || '',
+                    city: orderData.city || '', 
+                    address: orderData.address || '', 
+                    direction: orderData.direction || '', 
+                    offer: orderData.offer || '', 
+                    additionalPhone: orderData.additionalPhone || '', 
+                    source: orderData.source || '', 
+                    problem: orderData.problem || '', 
+                    clientComment: orderData.clientComment || '', 
                     status: 'new',
                     notes: ''
                 };
@@ -654,44 +862,13 @@ function loadPendingOrders() {
         });
 
         if (newOrdersAdded > 0) {
-             saveOrders(orders);
-             console.log(`${newOrdersAdded} new orders added from pending storage.`);
-             filterOrders(); // Re-render table
-             updateStatistics(); // Update stats
-             renderOrdersChart(filterOrdersForChart()); // Update chart
+            saveOrders(orders);
+            console.log(`${newOrdersAdded} new orders added from pending storage.`);
+            filterOrders(); 
+            updateStatistics(); 
+            renderOrdersChart(filterOrdersForChart()); 
         }
 
-        // Clear pending orders after processing
         localStorage.removeItem('pendingOrders');
     }
 }
-
-// Call loadPendingOrders when the dashboard is shown
-document.addEventListener('DOMContentLoaded', () => {
-    // ... (existing login check logic) ...
-     currentLoggedInUser = getLoggedInUser();
-    if (currentLoggedInUser) {
-         if (findUser(currentLoggedInUser)) {
-             showDashboard(currentLoggedInUser);
-             // loadPendingOrders is now called within showDashboard
-         } else {
-            clearLoggedInUser();
-            hideDashboard();
-        }
-    } else {
-        hideDashboard();
-    }
-
-    // Add event listeners for view toggling
-    showRegisterLink?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showRegisterView();
-    });
-
-    showLoginLink?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showLoginView();
-    });
-
-    // ... (rest of existing DOMContentLoaded logic) ...
-});
